@@ -75,6 +75,22 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 import pymysql  # noqa: 402
 import os 
+from dotenv import load_dotenv
+
+load_dotenv()
+required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+for var_name in required_env_vars:
+    if not os.getenv(var_name):
+        raise ValueError(f"Environment variable '{var_name}' not set")
+DB_HOST = os.getenv("DB_HOST")
+DB_HOST_GAE = os.getenv("DB_HOST_GAE")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+DB_PORT = os.getenv("DB_PORT")
+
+if not DB_HOST:
+    raise ValueError("OPENAI_API_KEY is not set in .env")
 
 pymysql.version_info = (1, 4, 6, "final", 0)  # change mysqlclient version
 pymysql.install_as_MySQLdb()
@@ -84,10 +100,10 @@ if os.getenv("GAE_APPLICATION", None):
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "HOST": "/cloudsql/sunny-shadow-415020:us-west1:db",
-            "USER": "root",
-            "PASSWORD": "furry-taco-520010",
-            "NAME": "goodhome",
+            "HOST": DB_HOST_GAE,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASSWORD,
+            "NAME": DB_NAME,
         }
     }
 # django runs locally
@@ -95,11 +111,11 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": "goodhome",
-            "USER": "root",
-            "PASSWORD": "furry-taco-520010",
-            "HOST": "34.82.235.60",
-            "PORT": "3306",
+            "NAME": DB_NAME,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASSWORD,
+            "HOST": DB_HOST,
+            "PORT": DB_PORT,
         }
     }
 
