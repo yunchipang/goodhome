@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-6$)rkgu^xlh$&l-w=t2%z!_kz&)s@raqro212bibn=#av5%pcs
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "bid",
 ]
 
 MIDDLEWARE = [
@@ -49,7 +50,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "goodhome.urls"
+ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
@@ -67,18 +68,57 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "goodhome.wsgi.application"
+WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
+import pymysql  # noqa: 402
+import os 
+from dotenv import load_dotenv
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+load_dotenv()
+required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+for var_name in required_env_vars:
+    if not os.getenv(var_name):
+        raise ValueError(f"Environment variable '{var_name}' not set")
+DB_HOST = os.getenv("DB_HOST")
+DB_HOST_GAE = os.getenv("DB_HOST_GAE")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+DB_PORT = os.getenv("DB_PORT")
+
+if not DB_HOST:
+    raise ValueError("OPENAI_API_KEY is not set in .env")
+
+pymysql.version_info = (1, 4, 6, "final", 0)  # change mysqlclient version
+pymysql.install_as_MySQLdb()
+# [START db_setup]
+# django runs on google app engine
+if os.getenv("GAE_APPLICATION", None):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "HOST": DB_HOST_GAE,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASSWORD,
+            "NAME": DB_NAME,
+        }
     }
-}
+# django runs locally
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": DB_NAME,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASSWORD,
+            "HOST": DB_HOST,
+            "PORT": DB_PORT,
+        }
+    }
+
 
 
 # Password validation
