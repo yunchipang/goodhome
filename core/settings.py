@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-6$)rkgu^xlh$&l-w=t2%z!_kz&)s@raqro212bibn=#av5%pcs
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "bid",
 ]
 
 MIDDLEWARE = [
@@ -49,7 +50,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "goodhome.urls"
+ROOT_URLCONF = "core.urls"
 
 TEMPLATES = [
     {
@@ -67,18 +68,41 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "goodhome.wsgi.application"
+WSGI_APPLICATION = "core.wsgi.application"
 
 
 # Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
+# https://docs.djangoproject.com/en/3.1/ref/settings/#databases
+import pymysql  # noqa: 402
+import os 
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+pymysql.version_info = (1, 4, 6, "final", 0)  # change mysqlclient version
+pymysql.install_as_MySQLdb()
+# [START db_setup]
+# django runs on google app engine
+if os.getenv("GAE_APPLICATION", None):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "HOST": "/cloudsql/sunny-shadow-415020:us-west1:db",
+            "USER": "root",
+            "PASSWORD": "furry-taco-520010",
+            "NAME": "goodhome",
+        }
     }
-}
+# django runs locally
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": "goodhome",
+            "USER": "root",
+            "PASSWORD": "furry-taco-520010",
+            "HOST": "34.82.235.60",
+            "PORT": "3306",
+        }
+    }
+
 
 
 # Password validation
