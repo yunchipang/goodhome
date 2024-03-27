@@ -89,9 +89,6 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
 DB_PORT = os.getenv("DB_PORT")
 
-if not DB_HOST:
-    raise ValueError("OPENAI_API_KEY is not set in .env")
-
 pymysql.version_info = (1, 4, 6, "final", 0)  # change mysqlclient version
 pymysql.install_as_MySQLdb()
 # [START db_setup]
