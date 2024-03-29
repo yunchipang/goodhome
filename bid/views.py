@@ -25,7 +25,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Bid, Auction, User,Bidder, Winner
+from .models import Bid, Auction, User, Bidder, Winner
 from rest_framework.permissions import AllowAny
 from datetime import datetime
 from django.db.models import Max
@@ -36,6 +36,16 @@ from django.dispatch import receiver
 from django.utils.timezone import now
 
 
+from django.http import JsonResponse
+from .models import Property
+from .serializers import PropertySerializer
+from django.shortcuts import render
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.middleware.csrf import get_token
+
+
 def get_csrf(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrfToken': csrf_token})
@@ -44,52 +54,81 @@ def get_csrf(request):
 def home(request):
     return HttpResponse("Welcome to the homepage!")
 
+
 @csrf_exempt
 def upload_property(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            # 验证必需字段是否存在
+            required_fields = ['category', 'start_bid_amount', 'seller_id',
+                               'property_descr', 'title', 'is_active', 'address', 'squarefeet', 'room_type', 'created_at', 'zipcode']
+            for field in required_fields:
+                if field not in data:
+                    return JsonResponse({'error': f'Missing field: {field}'}, status=400)
 
-    try:
-        data = request.POST
-        print(data)  # Debugging purpose
-        print(request.FILES)
+            # 进行数据处理，例如保存到数据库
+            # Your code to save data goes here
+            property_obj = Property.objects.create(
+                category=data['category'],
+                start_bid_amount=data['start_bid_amount'],
+                seller_id=data['seller_id'],
+                property_descr=data['property_descr'],
+                title=data['title'],
+                is_active=data['is_active'],
+                address=data['address'],
+                squarefeet=data['squarefeet'],
+                room_type=data['room_type'],
+                created_at=data['created_at'],
+                zipcode=int(data['zipcode'])
+            )
 
-        required_fields = ['category', 'start_bid_amount', 'seller_id', 'property_descr', 'title',
-                           'is_active', 'address', 'squarefeet', 'room_type', 'created_at', 'zipcode']
-        for field in required_fields:
-            if field not in data:
-                return JsonResponse({'error': f'Missing field: {field}'}, status=400)
+            return JsonResponse({'success': 'Property uploaded successfully'})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+        except KeyError as e:
+            return JsonResponse({'error': f'Missing field: {e}'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    else:
+        return JsonResponse({'error': 'Invalid request'}, status=400)
 
-        # Convert and validate data types
-        is_active = data['is_active'].lower() == 'true'
-        start_bid_amount = float(data['start_bid_amount'])
-        seller_id = int(data['seller_id'])
-        squarefeet = int(data['squarefeet'])
-        zipcode = int(data['zipcode']) if data['zipcode'].isdigit() else None
 
-        # Save image and other data
-        image = request.FILES.get('image_url')
-        if not image:
-            return JsonResponse({'error': 'Missing property image'}, status=400)
+# @csrf_exempt
+# def upload_property(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             # 验证必需字段是否存在
+#             required_fields = ['category', 'start_bid_amount', 'seller_id',
+#                                'property_descr', 'title', 'is_active', 'address', 'squarefeet', 'room_type']
+#             for field in required_fields:
+#                 if field not in data:
+#                     return JsonResponse({'error': f'Missing field: {field}'}, status=400)
 
-        property_obj = Property.objects.create(
-            category=data['category'],
-            start_bid_amount=start_bid_amount,
-            seller_id=seller_id,
-            property_descr=data['property_descr'],
-            title=data['title'],
-            is_active=is_active,
-            address=data['address'],
-            squarefeet=squarefeet,
-            room_type=data['room_type'],
-            created_at=data['created_at'],
-            zipcode=zipcode,
-            image_url=image  # Ensure image is handled correctly
-        )
+#             # 将数据保存到数据库
+#             property_obj = Property.objects.create(
+#                 category=data['category'],
+#                 start_bid_amount=data['start_bid_amount'],
+#                 seller_id=data['seller_id'],
+#                 property_descr=data['property_descr'],
+#                 title=data['title'],
+#                 is_active=data['is_active'],
+#                 address=data['address'],
+#                 squarefeet=data['squarefeet'],
+#                 room_type=data['room_type']
+#             )
 
-        return JsonResponse({'success': 'Property uploaded successfully'})
-    except Exception as e:
-        return JsonResponse({'error': f'Error processing request: {str(e)}'}, status=400)
+#             # 返回成功响应
+#             return JsonResponse({'success': 'Property uploaded successfully'})
+#         except json.JSONDecodeError:
+#             return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+#         except KeyError as e:
+#             return JsonResponse({'error': f'Missing field: {e}'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=400)
+#     else:
+#         return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
 def get_properties(request):
@@ -132,22 +171,23 @@ def upload_bid(request):
         print("Bidder instance:", bidder)
         print("Auction instance:", auction)
         if auction.start_time <= now() <= auction.end_time:
-        # 获取或创建对应的Winner实例
+            # 获取或创建对应的Winner实例
             winner, created = Winner.objects.get_or_create(
                 auction=auction,
                 defaults={'temp_sale_price': amount, 'user': bidder.user}
             )
             # 假设如果temp_sale_price是None，则将其视为0
-            temp_sale_price = winner.temp_sale_price if winner.temp_sale_price is not None else Decimal('0.00')
+            temp_sale_price = winner.temp_sale_price if winner.temp_sale_price is not None else Decimal(
+                '0.00')
             # 如果不是新创建的，并且新的出价高于当前的临时最高出价，则更新
             if not created and amount > temp_sale_price:
                 winner.temp_sale_price = amount
                 winner.user = bidder.user  # 更新最高出价者
                 winner.save()
 
-
             # 创建并保存新的出价记录
-            bid = Bid.objects.create(amount=amount, auction=auction, bidder=bidder)
+            bid = Bid.objects.create(
+                amount=amount, auction=auction, bidder=bidder)
             # Return success response
             return JsonResponse({"message": "Bid uploaded successfully", "bid_id": bid.id})
 
@@ -162,8 +202,6 @@ def upload_bid(request):
         print(e)  # Log the error for debugging
         # Return error response if something goes wrong
         return HttpResponseBadRequest("Invalid data provided")
-    
-    
 
 
 class PropertyList(generics.ListAPIView):
@@ -174,11 +212,13 @@ class PropertyList(generics.ListAPIView):
         Optionally restricts the returned properties to a given zipcode,
         by filtering against a `zipcode` query parameter in the URL.
         """
-        queryset = Property.objects.filter(is_active=True)  # Assuming you only want active properties
+        queryset = Property.objects.filter(
+            is_active=True)  # Assuming you only want active properties
         zipcode = self.request.query_params.get('zipcode', None)
         if zipcode is not None:
             queryset = queryset.filter(zipcode=zipcode)
         return queryset
+
     def get_serializer_context(self):
         """
         Pass request object to serializer to construct full image URL.
@@ -186,9 +226,9 @@ class PropertyList(generics.ListAPIView):
         return {'request': self.request}
 
 
-
 class BidCreate(APIView):
     permission_classes = [AllowAny]  # 允许任何人进行 POST 请求
+
     def post(self, request, *args, **kwargs):
         print(request.data)
         serializer = BidSerializer(data=request.data)
@@ -200,20 +240,26 @@ class BidCreate(APIView):
         else:
             # 如果数据验证失败，返回错误信息
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 def submit_bid(auction_id, bidder_id, amount):
     now = timezone.now()
     auction = Auction.objects.get(pk=auction_id)
 
     # 确保竞拍仍在进行中
     if auction.start_time <= now <= auction.end_time:
-        Bid.objects.create(bidder_id=bidder_id, auction_id=auction_id, amount=amount)
-        
+        Bid.objects.create(bidder_id=bidder_id,
+                           auction_id=auction_id, amount=amount)
+
         # 更新临时最高出价
-        max_bid = Bid.objects.filter(auction_id=auction_id).aggregate(Max('amount'))['amount__max']
-        highest_bid = Bid.objects.filter(auction_id=auction_id, amount=max_bid).first()
-        
+        max_bid = Bid.objects.filter(auction_id=auction_id).aggregate(
+            Max('amount'))['amount__max']
+        highest_bid = Bid.objects.filter(
+            auction_id=auction_id, amount=max_bid).first()
+
         # 检查是否已存在获胜者记录
-        winner, created = Winner.objects.get_or_create(auction_id=auction_id, defaults={'user': highest_bid.bidder.user, 'temp_sale_price': max_bid})
+        winner, created = Winner.objects.get_or_create(auction_id=auction_id, defaults={
+                                                       'user': highest_bid.bidder.user, 'temp_sale_price': max_bid})
         if not created:
             winner.user = highest_bid.bidder.user
             winner.temp_sale_price = max_bid
@@ -221,7 +267,9 @@ def submit_bid(auction_id, bidder_id, amount):
     else:
         raise ValueError("The auction is not active.")
 
-#返回当前登录用户作为winner的所有记录
+# 返回当前登录用户作为winner的所有记录
+
+
 def buy_history(request):
     # 假设当前登录用户的ID为1
     user_id = 1  # 你可以替换为 request.user.id

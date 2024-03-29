@@ -26,12 +26,12 @@ from authentication.views import signup_login_view
 
 urlpatterns = [
     path('', home, name='home'),
+    path("admin/", admin.site.urls),
     path('signup-login/', signup_login_view, name='signup_login'),
     # 注册页面
     path('signup/', signup_login_view, name='signup'),
     # 登录页面
     path('login/', signup_login_view, name='login'),
-    path("admin/", admin.site.urls),
     path('upload_property/', upload_property, name='upload_property'),
     path('get_properties/', get_properties, name='get_properties'),
     path('get-csrf/', get_csrf, name='get_csrf'),
