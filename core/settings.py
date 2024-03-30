@@ -83,10 +83,12 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 import pymysql  # noqa: 402
+import os 
+from dotenv import load_dotenv
 
 load_dotenv()
-required_env_vars = ["DB_HOST", "DB_HOST_GAE",
-                     "DB_USER", "DB_PASSWORD", "DB_NAME"]
+required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+
 for var_name in required_env_vars:
     if not os.getenv(var_name):
         raise ValueError(f"Environment variable '{var_name}' not set")
@@ -158,7 +160,6 @@ USE_TZ = True
 CSRF_COOKIE_SECURE = False
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
