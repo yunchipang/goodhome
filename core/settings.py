@@ -88,10 +88,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
-
 for var_name in required_env_vars:
     if not os.getenv(var_name):
         raise ValueError(f"Environment variable '{var_name}' not set")
+
 DB_HOST = os.getenv("DB_HOST")
 DB_HOST_GAE = os.getenv("DB_HOST_GAE")
 DB_USER = os.getenv("DB_USER")
