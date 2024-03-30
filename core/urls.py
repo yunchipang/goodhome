@@ -29,3 +29,4 @@ urlpatterns = [
     path('get_properties/', get_properties, name='get_properties'),
     path('get-csrf/', get_csrf, name='get_csrf'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

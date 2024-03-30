@@ -10,8 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
-import os
-from dotenv import load_dotenv
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -84,9 +82,11 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 import pymysql  # noqa: 402
 
+import os 
+from dotenv import load_dotenv
+
 load_dotenv()
-required_env_vars = ["DB_HOST", "DB_HOST_GAE",
-                     "DB_USER", "DB_PASSWORD", "DB_NAME"]
+required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
 for var_name in required_env_vars:
     if not os.getenv(var_name):
         raise ValueError(f"Environment variable '{var_name}' not set")
@@ -159,7 +159,6 @@ CSRF_COOKIE_SECURE = False
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
@@ -168,6 +167,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

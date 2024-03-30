@@ -1,5 +1,3 @@
-# views.py
-
 from django.http import JsonResponse
 from .models import Property
 from .serializers import PropertySerializer
