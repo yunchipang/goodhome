@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 # Assuming bid is the app name
-from bid.views import home, upload_property, get_properties, get_csrf
+from bid.views import home, upload_property, get_properties, get_csrf, get_property_details
 
 urlpatterns = [
     path('', home, name='home'),
@@ -28,4 +28,6 @@ urlpatterns = [
     path('upload_property/', upload_property, name='upload_property'),
     path('get_properties/', get_properties, name='get_properties'),
     path('get-csrf/', get_csrf, name='get_csrf'),
+    path('get_property_details/<int:property_id>',
+         get_property_details, name='get_property_details'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
