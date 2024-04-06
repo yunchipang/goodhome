@@ -1,7 +1,12 @@
 import os
 from django.conf import settings
 from rest_framework import serializers
+<<<<<<< HEAD
 from .models import Property, Bid, Bidder, Auction
+=======
+from .models import Property
+
+>>>>>>> c75839c (build async chat server)
 
 
 class PropertySerializer(serializers.ModelSerializer):

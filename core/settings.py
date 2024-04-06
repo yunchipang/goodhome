@@ -40,6 +40,8 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    "chat",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -54,6 +56,17 @@ INSTALLED_APPS = [
     'bid.apps.BidConfig',
     # 'background_task',
 ]
+
+# Daphne
+ASGI_APPLICATION = "core.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -189,7 +202,7 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
-MEDIA_URL = '/media/'
+MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
