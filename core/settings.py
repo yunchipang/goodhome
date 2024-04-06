@@ -35,6 +35,7 @@ STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 # Application definition
 
 INSTALLED_APPS = [
@@ -44,9 +45,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "bid",
+    # "bid",
     "corsheaders",
     'rest_framework',
+    'bid.apps.BidConfig',  
+    # 'background_task',
 ]
 
 MIDDLEWARE = [

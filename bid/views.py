@@ -1,5 +1,6 @@
 # views.py
-from django.http import JsonResponse
+import datetime
+from django.http import HttpResponseBadRequest, JsonResponse
 from .models import Property
 from .serializers import PropertySerializer
 from django.shortcuts import render
@@ -20,8 +21,20 @@ from .serializers import PropertySerializer, BidSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Bid
 from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Bid, Auction, User,Bidder, Winner
+from rest_framework.permissions import AllowAny
+from datetime import datetime
+from django.db.models import Max
+from django.utils import timezone
+from decimal import Decimal
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.utils.timezone import now
+
 
 def get_csrf(request):
     csrf_token = get_token(request)
@@ -96,6 +109,63 @@ def get_properties(request):
     return JsonResponse(properties_list, safe=False)
 
 
+@csrf_exempt
+@require_http_methods(["POST"])  # Only allow POST requests
+def upload_bid(request):
+    try:
+        # Parse request body to get data
+        # data = json.loads(request.body)
+        data = json.loads(request.body.decode('utf-8'))
+        print("Request data:", request.POST)  # For form data
+        print("Request JSON data:", request.body)  # For raw JSON data
+        # Extract data
+        amount = data['amount']
+        amount = Decimal(amount)
+        auction_id = data['auction']
+        bidder_id = data['bidder']
+        # 确保所有必需字段都存在
+        if not all([amount, auction_id, bidder_id]):
+            return HttpResponseBadRequest("Missing required fields")
+        # Fetch the auction and bidder instances
+        auction = Auction.objects.get(pk=auction_id)
+        bidder = Bidder.objects.get(pk=1)
+        print("Bidder instance:", bidder)
+        print("Auction instance:", auction)
+        if auction.start_time <= now() <= auction.end_time:
+        # 获取或创建对应的Winner实例
+            winner, created = Winner.objects.get_or_create(
+                auction=auction,
+                defaults={'temp_sale_price': amount, 'user': bidder.user}
+            )
+            # 假设如果temp_sale_price是None，则将其视为0
+            temp_sale_price = winner.temp_sale_price if winner.temp_sale_price is not None else Decimal('0.00')
+            # 如果不是新创建的，并且新的出价高于当前的临时最高出价，则更新
+            if not created and amount > temp_sale_price:
+                winner.temp_sale_price = amount
+                winner.user = bidder.user  # 更新最高出价者
+                winner.save()
+
+
+            # 创建并保存新的出价记录
+            bid = Bid.objects.create(amount=amount, auction=auction, bidder=bidder)
+            # Return success response
+            return JsonResponse({"message": "Bid uploaded successfully", "bid_id": bid.id})
+
+        else:
+            # 如果当前时间不在拍卖的开始时间和结束时间之间
+            return JsonResponse({"error": "Auction has ended. No more bids are accepted."}, status=400)
+    except Auction.DoesNotExist:
+        return JsonResponse({"error": "Auction does not exist."}, status=400)
+    except Bidder.DoesNotExist:
+        return JsonResponse({"error": "Bidder does not exist."}, status=400)
+    except (KeyError, Auction.DoesNotExist, User.DoesNotExist, json.JSONDecodeError) as e:
+        print(e)  # Log the error for debugging
+        # Return error response if something goes wrong
+        return HttpResponseBadRequest("Invalid data provided")
+    
+    
+
+
 class PropertyList(generics.ListAPIView):
     serializer_class = PropertySerializer
 
@@ -130,3 +200,25 @@ class BidCreate(APIView):
         else:
             # 如果数据验证失败，返回错误信息
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+def submit_bid(auction_id, bidder_id, amount):
+    now = timezone.now()
+    auction = Auction.objects.get(pk=auction_id)
+
+    # 确保竞拍仍在进行中
+    if auction.start_time <= now <= auction.end_time:
+        Bid.objects.create(bidder_id=bidder_id, auction_id=auction_id, amount=amount)
+        
+        # 更新临时最高出价
+        max_bid = Bid.objects.filter(auction_id=auction_id).aggregate(Max('amount'))['amount__max']
+        highest_bid = Bid.objects.filter(auction_id=auction_id, amount=max_bid).first()
+        
+        # 检查是否已存在获胜者记录
+        winner, created = Winner.objects.get_or_create(auction_id=auction_id, defaults={'user': highest_bid.bidder.user, 'temp_sale_price': max_bid})
+        if not created:
+            winner.user = highest_bid.bidder.user
+            winner.temp_sale_price = max_bid
+            winner.save()
+    else:
+        raise ValueError("The auction is not active.")
+
+
