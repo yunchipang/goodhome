@@ -221,4 +221,18 @@ def submit_bid(auction_id, bidder_id, amount):
     else:
         raise ValueError("The auction is not active.")
 
+#返回当前登录用户作为winner的所有记录
+def buy_history(request):
+    # 假设当前登录用户的ID为1
+    user_id = 1  # 你可以替换为 request.user.id
 
+    # 获取当前用户作为winner的记录
+    winners = Winner.objects.filter(user_id=user_id, sale_price__isnull=False)
+
+    # 构建响应数据
+    data = [{
+        'bid_amount': winner.sale_price,
+        'property_address': winner.auction.property.address,
+    } for winner in winners]
+
+    return JsonResponse({'winners': data})
