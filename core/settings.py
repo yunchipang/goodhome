@@ -10,7 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
+from dotenv import load_dotenv
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,8 +29,13 @@ SECRET_KEY = "django-insecure-6$)rkgu^xlh$&l-w=t2%z!_kz&)s@raqro212bibn=#av5%pcs
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+AUTH_USER_MODEL = 'bid.User'
 
-
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 # Application definition
 
 INSTALLED_APPS = [
@@ -37,12 +45,16 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "bid",
+    # "bid",
     "corsheaders",
+    'rest_framework',
+    'bid.apps.BidConfig',  
+    # 'background_task',
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -55,6 +67,18 @@ MIDDLEWARE = [
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Add your React application's URL here
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # Add your React application's URL here
+]
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
 
 ROOT_URLCONF = "core.urls"
 
@@ -80,11 +104,10 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 import pymysql  # noqa: 402
-import os 
-from dotenv import load_dotenv
 
 load_dotenv()
-required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+required_env_vars = ["DB_HOST", "DB_HOST_GAE",
+                     "DB_USER", "DB_PASSWORD", "DB_NAME"]
 for var_name in required_env_vars:
     if not os.getenv(var_name):
         raise ValueError(f"Environment variable '{var_name}' not set")
@@ -123,7 +146,6 @@ else:
     }
 
 
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -154,13 +176,15 @@ USE_I18N = True
 
 USE_TZ = True
 
-CORS_ALLOW_ALL_ORIGINS = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
