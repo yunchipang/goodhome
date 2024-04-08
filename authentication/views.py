@@ -17,7 +17,7 @@ from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from .models import User
+from bid.models import User
 import json
 
 # def home_view(request):
