@@ -16,8 +16,21 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+from django.urls import path, include
+# Assuming bid is the app name
+from bid.views import home, upload_property, get_properties, get_csrf
+from bid.views import buy_history, handle_payment
 
 urlpatterns = [
+    path('', home, name='home'),
     path("admin/", admin.site.urls),
-]
+    path('upload_property/', upload_property, name='upload_property'),
+    path('get_properties/', get_properties, name='get_properties'),
+    path('get-csrf/', get_csrf, name='get_csrf'),
+    path('api/bid/', include('bid.urls')),
+    path('api-auth/', include('rest_framework.urls')),
+    path('api/buyhistory/', buy_history, name='buy_history'),
+    path('api/handle_payment/', handle_payment, name='handle_payment'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
