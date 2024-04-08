@@ -1,7 +1,6 @@
 # views.py
 import datetime
 from django.http import HttpResponseBadRequest, JsonResponse
-
 from .models import Property
 from .serializers import PropertySerializer
 from django.shortcuts import render
@@ -19,6 +18,10 @@ from .forms import BidForm
 from rest_framework import generics
 from .models import Property
 from .serializers import PropertySerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -123,7 +126,6 @@ def upload_bid(request):
         # 确保所有必需字段都存在
         if not all([amount, auction_id, bidder_id]):
             return HttpResponseBadRequest("Missing required fields")
-
         # Fetch the auction and bidder instances
         auction = Auction.objects.get(pk=auction_id)
         bidder = Bidder.objects.get(pk=1)
@@ -184,6 +186,20 @@ class PropertyList(generics.ListAPIView):
         return {'request': self.request}
 
 
+
+class BidCreate(APIView):
+    permission_classes = [AllowAny]  # 允许任何人进行 POST 请求
+    def post(self, request, *args, **kwargs):
+        print(request.data)
+        serializer = BidSerializer(data=request.data)
+        if serializer.is_valid():
+            # 假设出价者ID为1，这里应该替换为实际的逻辑来获取当前用户的ID
+            bid_instance = serializer.save(bidder_id=1)
+            # 返回创建成功的响应，包括新创建的实例数据
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # 如果数据验证失败，返回错误信息
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 def submit_bid(auction_id, bidder_id, amount):
     now = timezone.now()
     auction = Auction.objects.get(pk=auction_id)
@@ -205,4 +221,18 @@ def submit_bid(auction_id, bidder_id, amount):
     else:
         raise ValueError("The auction is not active.")
 
+#返回当前登录用户作为winner的所有记录
+def buy_history(request):
+    # 假设当前登录用户的ID为1
+    user_id = 1  # 你可以替换为 request.user.id
 
+    # 获取当前用户作为winner的记录
+    winners = Winner.objects.filter(user_id=user_id, sale_price__isnull=False)
+
+    # 构建响应数据
+    data = [{
+        'bid_amount': winner.sale_price,
+        'property_address': winner.auction.property.address,
+    } for winner in winners]
+
+    return JsonResponse({'winners': data})
