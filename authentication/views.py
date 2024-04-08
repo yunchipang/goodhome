@@ -20,8 +20,6 @@ from django.views.decorators.csrf import csrf_exempt
 from bid.models import User
 import json
 
-# def home_view(request):
-#     return render(request, 'homepage.html')
 
 def get_csrf(request):
     csrf_token = get_token(request)

@@ -26,10 +26,7 @@ from authentication.views import signup_login_view
 
 urlpatterns = [
     path('', home, name='home'),
-    # path('api/', include('authentication.urls')),
     path('signup-login/', signup_login_view, name='signup_login'),
-    # path('', home_view, name='home'),
-    # path('SignUpLogIn/signuplogin.html', signup_login_view, name='signup_login'),
     # 注册页面
     path('signup/', signup_login_view, name='signup'),
     # 登录页面

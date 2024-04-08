@@ -12,7 +12,7 @@ from bid.models import User
 class SignUpForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'password', 'email', 'mailing_address']
+        fields = ['first_name', 'last_name', 'phone', 'username', 'password', 'email', 'mailing_address']
 
 class LoginForm(forms.Form):
     username = forms.CharField(max_length=100)
