@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 # Assuming bid is the app name
-from bid.views import home, upload_property, get_properties, get_csrf
+from bid.views import home, upload_property, get_properties, get_csrf, buy_history
 from authentication.views import signup_login_view
 
 
@@ -37,4 +37,5 @@ urlpatterns = [
     path('get-csrf/', get_csrf, name='get_csrf'),
     path('api/bid/', include('bid.urls')),
     path('api-auth/', include('rest_framework.urls')),
+    path('api/buyhistory/', buy_history, name='buy_history'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
