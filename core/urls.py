@@ -21,10 +21,19 @@ from django.conf.urls.static import static
 from django.urls import path, include
 # Assuming bid is the app name
 from bid.views import home, upload_property, get_properties, get_csrf
+from authentication.views import signup_login_view
 
 
 urlpatterns = [
     path('', home, name='home'),
+    # path('api/', include('authentication.urls')),
+    path('signup-login/', signup_login_view, name='signup_login'),
+    # path('', home_view, name='home'),
+    # path('SignUpLogIn/signuplogin.html', signup_login_view, name='signup_login'),
+    # 注册页面
+    path('signup/', signup_login_view, name='signup'),
+    # 登录页面
+    path('login/', signup_login_view, name='login'),
     path("admin/", admin.site.urls),
     path('upload_property/', upload_property, name='upload_property'),
     path('get_properties/', get_properties, name='get_properties'),
