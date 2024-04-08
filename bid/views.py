@@ -2,6 +2,10 @@
 
 from django.http import JsonResponse
 from .models import Property
+from .models import Winner
+from .models import Auction
+from .models import WinnerRating
+from .models import User
 # from .serializers import PropertySerializer
 # from django.shortcuts import render
 from django.http import HttpResponse
@@ -112,3 +116,75 @@ def get_property_details(request, property_id):
     except Exception as e:
         print(f'Error fetching property details: {e}')
         return JsonResponse({'error': 'Error processing request'}, status=500)
+
+
+def get_auction_result(request, property_id):
+    try:
+        # 查询对应 property_id 的拍卖信息
+        auction = Auction.objects.filter(property_id=property_id).order_by(
+            '-current_highest_bid').first()
+        if auction:
+            # 根据找到的拍卖信息获取对应的获胜者信息
+            winner_info = get_winner_by_auction(auction.id)
+            if winner_info:
+                # 返回拍卖和获胜者信息
+                return JsonResponse({
+                    'property_id': property_id,
+                    'current_highest_bid': auction.current_highest_bid,
+                    'start_time': auction.start_time,
+                    'end_time': auction.end_time,
+                    'winner_id': winner_info['winner_id'],
+                    'sale_price': winner_info['sale_price']
+                })
+            else:
+                return JsonResponse({'error': 'Winner not found for this auction'}, status=404)
+        else:
+            return JsonResponse({'error': 'Auction not found for this property'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def get_winner_by_auction(auction_id):
+    try:
+        # 根据 auction_id 查询对应的获胜者信息
+        winner = Winner.objects.filter(auction_id=auction_id).first()
+        if winner:
+            return {
+                'winner_id': winner.user_id,
+                'sale_price': winner.temp_sale_price
+            }
+        else:
+            return None
+    except Exception as e:
+        raise e
+
+
+@csrf_exempt
+def rate_winner(request, winner_id):
+    try:
+        # 解析JSON请求体
+        data = json.loads(request.body)
+        rating = data.get('rating')
+        message = data.get('message')
+
+        # 确认数据存在
+        if not (rating and message):
+            return JsonResponse({'error': 'Rating or message is missing.'}, status=400)
+
+        # 假设您已经通过身份验证获取了卖家的用户ID
+        seller_id = 1
+
+        # 检查卖家和获胜者是否存在，并且评分数据有效
+        if User.objects.filter(id=winner_id).exists():
+            winner = User.objects.get(id=winner_id)
+            WinnerRating.objects.create(
+                seller_id=seller_id,
+                winner=winner,
+                rating=rating,
+                message=message
+            )
+            return JsonResponse({'message': 'Rating saved successfully.'}, status=200)
+        else:
+            return JsonResponse({'error': 'Seller or winner does not exist.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)

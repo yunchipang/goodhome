@@ -1,24 +1,38 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
-class Property(models.Model):
-    category = models.CharField(max_length=50)
-    start_bid_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    seller_id = models.IntegerField()
-    # created_at = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    property_descr = models.TextField()
-    title = models.CharField(max_length=100)
-    is_active = models.BooleanField(default=True)
-    address = models.CharField(max_length=255)
-    squarefeet = models.IntegerField()
-    room_type = models.CharField(max_length=50)
-    zipcode = models.IntegerField()
-    image_url = models.ImageField(upload_to='image_url/')
+class UserManager(BaseUserManager):
+    def create_user(self, username, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Users must have an email address')
+        if not username:
+            raise ValueError('Users must have a username')
 
-    class Meta:
-        db_table = 'property'
+        user = self.model(
+            email=self.normalize_email(email),
+            username=username,
+            **extra_fields
+        )
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(username, email, password, **extra_fields)
+
+# Custom User Model
 
 
 class User(AbstractBaseUser):
@@ -43,6 +57,51 @@ class User(AbstractBaseUser):
     class Meta:
         db_table = "user"
 
+# Seller Model
+
+
+class Seller(models.Model):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, primary_key=True)
+
+    def __str__(self):
+        return f"Seller: {self.user.username}"
+
+    class Meta:
+        db_table = "seller"
+
+# Bidder Model
+
+
+class Bidder(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        # return f"Bidder: {self.user.username}"
+        return self.user.username
+
+    class Meta:
+        db_table = "bidder"
+
+
+class Property(models.Model):
+    category = models.CharField(max_length=50)
+    start_bid_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    seller_id = models.IntegerField()
+    # created_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    property_descr = models.TextField()
+    title = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    address = models.CharField(max_length=255)
+    squarefeet = models.IntegerField()
+    room_type = models.CharField(max_length=50)
+    zipcode = models.IntegerField()
+    image_url = models.ImageField(upload_to='image_url/')
+
+    class Meta:
+        db_table = 'property'
+
 
 class Auction(models.Model):
     property = models.ForeignKey(
@@ -59,6 +118,21 @@ class Auction(models.Model):
         db_table = "auction"
 
 
+class Bid(models.Model):
+    bidder = models.ForeignKey(
+        Bidder, on_delete=models.CASCADE, db_column='bidder_id')
+    auction = models.ForeignKey(
+        Auction, on_delete=models.CASCADE, related_name='bids', db_column='auction_id')
+    created_at = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.amount} by {self.bidder}"
+
+    class Meta:
+        db_table = "bid"
+
+
 class Winner(models.Model):
     auction = models.OneToOneField(
         Auction, on_delete=models.CASCADE, primary_key=True)
@@ -73,3 +147,30 @@ class Winner(models.Model):
 
     class Meta:
         db_table = "winner"
+
+
+class WinnerRating(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='ratings_given',
+        db_column='seller_id',  # 指定数据库中的列名
+    )
+    winner = models.ForeignKey(
+        User,  # 直接关联到User模型
+        on_delete=models.CASCADE,
+        related_name='ratings_received',
+        db_column='winner_id',  # 指定数据库中的列名
+    )
+    message = models.CharField(max_length=100)
+    rating = models.IntegerField(
+        choices=[(1, 'Poor'), (2, 'Average'), (3, 'Good'),
+                 (4, 'Very Good'), (5, 'Excellent')]
+    )
+
+    def __str__(self):
+        # 由于现在winner直接关联到User，因此直接使用winner.username
+        return f"Rating from {self.seller.username} to {self.winner.username}: {self.rating} - {self.message}"
+
+    class Meta:
+        db_table = "winner_rating"
