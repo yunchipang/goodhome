@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/bid/', include('bid.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api/buyhistory/', buy_history, name='buy_history'),
+<<<<<<< HEAD
     path('get_property_details/<int:property_id>',
          get_property_details, name='get_property_details'),
     path('get_auction_result/<int:property_id>',
@@ -45,4 +46,6 @@ urlpatterns = [
     path('rate_winner/<int:winner_id>', rate_winner, name='rate_winner'),
     path('api/shipping', shipping_create, name='shipping_create'),
     path('get_properties/<int:seller_id>/', get_properties, name='get_properties'),
+=======
+>>>>>>> 89c7bf7 (rebase main @74f8641)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
