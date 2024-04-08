@@ -6,17 +6,14 @@ from .models import Winner
 from .models import Auction
 from .models import WinnerRating
 from .models import User
-# from .serializers import PropertySerializer
-# from django.shortcuts import render
+from .models import ShippingGift
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.middleware.csrf import get_token
-# from django.core.files.storage import FileSystemStorage
-# from django.core.files.storage import default_storage
 from django.conf import settings
-# from urllib.parse import urljoin
 import os
+from django.views.decorators.http import require_http_methods
 
 
 def get_csrf(request):
@@ -188,3 +185,30 @@ def rate_winner(request, winner_id):
             return JsonResponse({'error': 'Seller or winner does not exist.'}, status=404)
     except Exception as e:
         return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
+
+
+@require_http_methods(["POST"])
+@csrf_exempt
+def shipping_create(request):
+    # 解析请求体中的JSON数据
+    data = json.loads(request.body.decode('utf-8'))
+
+    # 获取数据字段
+    # seller_id = data.get('seller_id')
+    seller_id = 1
+    winner_id = data.get('winner_id')
+    trackingNumber = data.get('trackingNumber')
+
+    # 确保所有需要的字段都被正确传递并且不为空
+    if seller_id and winner_id and trackingNumber:
+        # 创建ShippingGift实例
+        shipping_gift = ShippingGift.objects.create(
+            seller_id=seller_id,
+            winner_id=winner_id,
+            ups_tracking_number=trackingNumber
+        )
+        # 返回成功响应
+        return JsonResponse({'status': 'success', 'shipping_id': shipping_gift.id})
+    else:
+        # 如果数据不完整，返回错误信息
+        return JsonResponse({'status': 'error', 'message': 'Missing data in request'}, status=400)

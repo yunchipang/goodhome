@@ -174,3 +174,26 @@ class WinnerRating(models.Model):
 
     class Meta:
         db_table = "winner_rating"
+
+
+class ShippingGift(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipments_made',
+        db_column='seller_id',  # Specifies the column name in the database
+    )
+    winner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipments_received',
+        db_column='winner_id',  # Specifies the column name in the database
+    )
+    ups_tracking_number = models.CharField(max_length=50)
+
+    def __str__(self):
+        # Here we use seller.username and winner.username assuming they are linked to the User model
+        return f"Shipment from {self.seller.username} to {self.winner.username} with tracking number {self.ups_tracking_number}"
+
+    class Meta:
+        db_table = "shipping"
