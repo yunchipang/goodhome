@@ -2,6 +2,8 @@ import json
 
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
+from bid.models import User
+from chat.models import ChatMessage
 
 
 class ChatConsumer(WebsocketConsumer):
@@ -26,6 +28,23 @@ class ChatConsumer(WebsocketConsumer):
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
+        sender_id = text_data_json["sender_id"]
+        receiver_id = text_data_json["receiver_id"]
+
+        # Find the sender & receiver user based on their ids
+        try:
+            sender = User.objects.get(id=sender_id)
+            receiver = User.objects.get(id=receiver_id)
+        except User.DoesNotExist:
+            return  # Handle the error appropriately
+
+        # Write message to database
+        chat_message = ChatMessage.objects.create(
+            sender=sender,
+            receiver=receiver,
+            message=message
+        )
+        print("Message saved:", chat_message)
 
         # Send message to room group
         async_to_sync(self.channel_layer.group_send)(
