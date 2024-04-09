@@ -1,14 +1,9 @@
+from django.conf import settings
+from core import settings
 from django.db import models
 from django.utils import timezone
-
-# Create your models here.
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-
-from core import settings
-from django.conf import settings
-
-# Custom User Manager
 
 
 class UserManager(BaseUserManager):
@@ -111,7 +106,8 @@ class Property(models.Model):
 
     class Meta:
         db_table = 'property'
-        
+
+
 class Auction(models.Model):
     property = models.ForeignKey(
         Property, related_name='auctions', on_delete=models.CASCADE)
@@ -156,3 +152,53 @@ class Winner(models.Model):
 
     class Meta:
         db_table = "winner"
+
+
+class WinnerRating(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='ratings_given',
+        db_column='seller_id',  # 指定数据库中的列名
+    )
+    winner = models.ForeignKey(
+        User,  # 直接关联到User模型
+        on_delete=models.CASCADE,
+        related_name='ratings_received',
+        db_column='winner_id',  # 指定数据库中的列名
+    )
+    message = models.CharField(max_length=100)
+    rating = models.IntegerField(
+        choices=[(1, 'Poor'), (2, 'Average'), (3, 'Good'),
+                 (4, 'Very Good'), (5, 'Excellent')]
+    )
+
+    def __str__(self):
+        # 由于现在winner直接关联到User，因此直接使用winner.username
+        return f"Rating from {self.seller.username} to {self.winner.username}: {self.rating} - {self.message}"
+
+    class Meta:
+        db_table = "winner_rating"
+
+
+class ShippingGift(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipments_made',
+        db_column='seller_id',  # Specifies the column name in the database
+    )
+    winner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipments_received',
+        db_column='winner_id',  # Specifies the column name in the database
+    )
+    ups_tracking_number = models.CharField(max_length=50)
+
+    def __str__(self):
+        # Here we use seller.username and winner.username assuming they are linked to the User model
+        return f"Shipment from {self.seller.username} to {self.winner.username} with tracking number {self.ups_tracking_number}"
+
+    class Meta:
+        db_table = "shipping"
