@@ -37,18 +37,15 @@ class ChatConsumer(WebsocketConsumer):
             receiver = User.objects.get(id=receiver_id)
         except User.DoesNotExist:
             return  # Handle the error appropriately
-
-        # Write message to database
-        chat_message = ChatMessage.objects.create(
-            sender=sender,
-            receiver=receiver,
-            message=message
-        )
-        print("Message saved:", chat_message)
-
         # Send message to room group
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name, {"type": "chat_message", "message": message}
+        )
+        # Write message to database
+        ChatMessage.objects.create(
+            sender=sender,
+            receiver=receiver,
+            message=message
         )
 
     # Receive message from room group
