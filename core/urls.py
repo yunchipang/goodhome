@@ -45,4 +45,5 @@ urlpatterns = [
     path('get_winner/<int:auction_id>', get_winner_by_auction, name='get_winner'),
     path('rate_winner/<int:winner_id>', rate_winner, name='rate_winner'),
     path('api/shipping', shipping_create, name='shipping_create'),
+    path('get_properties/<int:seller_id>/', get_properties, name='get_properties'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

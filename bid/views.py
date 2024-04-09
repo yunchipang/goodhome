@@ -21,12 +21,8 @@ from .serializers import PropertySerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import Bid, Auction, User, Bidder, Winner
-from rest_framework.permissions import AllowAny
 from datetime import datetime
 from django.db.models import Max
 from django.utils import timezone
@@ -49,6 +45,8 @@ from django.middleware.csrf import get_token
 from django.conf import settings
 import os
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_GET
+from rest_framework_simplejwt.tokens import AccessToken
 
 
 def get_csrf(request):
@@ -64,11 +62,26 @@ def home(request):
 def upload_property(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST method is allowed'}, status=405)
+    
+    token = request.headers.get('Authorization').split()[1]
+    decoded_token = AccessToken(token)
+    print(f"decoded_token: {decoded_token}")
+    user_id = decoded_token['user_id']
+    print("user_id: {}".format(user_id))
+    
+    try:
+        # Fetch the user object from the database
+        user = User.objects.get(id=user_id)
+    except Exception as e:
+        return JsonResponse({'error': f'Invalid token: {str(e)}'}, status=400)
 
     try:
         data = request.POST
+        image = request.FILES.get('image_url')
         print(data)  # Debugging purpose
         print(request.FILES)
+
+        seller_id = user_id
 
         required_fields = ['category', 'start_bid_amount', 'seller_id', 'property_descr', 'title',
                            'is_active', 'address', 'squarefeet', 'room_type', 'created_at', 'zipcode']
@@ -79,12 +92,13 @@ def upload_property(request):
         # Convert and validate data types
         is_active = data['is_active'].lower() == 'true'
         start_bid_amount = float(data['start_bid_amount'])
-        seller_id = int(data['seller_id'])
+        # seller_id = int(data['seller_id'])
         squarefeet = int(data['squarefeet'])
         zipcode = int(data['zipcode']) if data['zipcode'].isdigit() else None
 
         # Save image and other data
-        image = request.FILES.get('image_url')
+        # image = request.FILES.get('image_url')
+        # image = files.get('image_url')
         if not image:
             return JsonResponse({'error': 'Missing property image'}, status=400)
 
@@ -108,21 +122,87 @@ def upload_property(request):
         return JsonResponse({'error': f'Error processing request: {str(e)}'}, status=400)
 
 
-def get_properties(request):
-    properties = Property.objects.all().values(
-        'id', 'category', 'start_bid_amount', 'seller_id', 'created_at',
-        'property_descr', 'title', 'is_active', 'address', 'squarefeet', 'room_type', 'image_url'
-    )
-    properties_list = list(properties)
-    for property in properties_list:
-        if property['image_url']:
-            # 获取相对于MEDIA_ROOT的相对路径
-            relative_path = os.path.relpath(
-                property['image_url'], settings.MEDIA_ROOT)
-            # 构建完整的媒体URL
-            property['image_url'] = settings.MEDIA_URL + relative_path
+# class UploadPropertyView(APIView):
 
-    return JsonResponse(properties_list, safe=False)
+#     def upload_property(self, request, *args, **kwargs):
+#         print("----------line67 here----------")
+#         print(request)
+
+#         try:
+#             print("----------line71 Entered")
+#             data = request.POST
+#             image = request.FILES.get('image_url')
+#             print(data)  # Debugging purpose
+#             print("----------line74 Entered")
+#             print(request.FILES)
+
+#             seller_id = request.user.id
+
+#             required_fields = ['category', 'start_bid_amount', 'property_descr', 'title',
+#                                'is_active', 'address', 'squarefeet', 'room_type', 'created_at', 'zipcode']
+#             for field in required_fields:
+#                 if field not in data:
+#                     return JsonResponse({'error': f'Missing field: {field}'}, status=400)
+
+#             # Convert and validate data types
+#             is_active = data['is_active'].lower() == 'true'
+#             start_bid_amount = float(data['start_bid_amount'])
+#             squarefeet = int(data['squarefeet'])
+#             zipcode = int(data['zipcode']) if data['zipcode'].isdigit() else None
+
+#             # Save image and other data
+#             if not image:
+#                 return JsonResponse({'error': 'Missing property image'}, status=400)
+
+#             property_obj = Property.objects.create(
+#                 category=data['category'],
+#                 start_bid_amount=start_bid_amount,
+#                 seller_id=seller_id,
+#                 property_descr=data['property_descr'],
+#                 title=data['title'],
+#                 is_active=is_active,
+#                 address=data['address'],
+#                 squarefeet=squarefeet,
+#                 room_type=data['room_type'],
+#                 created_at=data['created_at'],
+#                 zipcode=zipcode,
+#                 image_url=image  # Ensure image is handled correctly
+#             )
+
+#             return JsonResponse({'success': 'Property uploaded successfully'})
+#         except Exception as e:
+#             return JsonResponse({'error': f'Error processing request: {str(e)}'}, status=400)
+
+@require_GET
+def get_properties(request, seller_id):
+    try:
+        properties = Property.objects.filter(seller_id=seller_id)
+        properties_list = []
+
+        for property in properties:
+            # Check if there is an image and create the full URL if it exists
+            image_url = request.build_absolute_uri(property.image_url.url) if property.image_url else None
+
+            property_data = {
+                'id': property.id,
+                'category': property.category,
+                'start_bid_amount': property.start_bid_amount,
+                'seller_id': property.seller_id,
+                'created_at': property.created_at,
+                'property_descr': property.property_descr,
+                'title': property.title,
+                'is_active': property.is_active,
+                'address': property.address,
+                'squarefeet': property.squarefeet,
+                'room_type': property.room_type,
+                'zipcode': property.zipcode,
+                'image_url': image_url
+            }
+            properties_list.append(property_data)
+
+        return JsonResponse(properties_list, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
 
 
 @csrf_exempt
