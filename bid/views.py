@@ -38,16 +38,16 @@ from django.utils.timezone import now
 
 from django.http import JsonResponse
 from .models import Property
-from .serializers import PropertySerializer
-from django.shortcuts import render
+# from .serializers import PropertySerializer
+# from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.middleware.csrf import get_token
-from django.core.files.storage import FileSystemStorage
-from django.core.files.storage import default_storage
+# from django.core.files.storage import FileSystemStorage
+# from django.core.files.storage import default_storage
 from django.conf import settings
-from urllib.parse import urljoin
+# from urllib.parse import urljoin
 import os
 
 
@@ -261,3 +261,26 @@ def buy_history(request):
     } for winner in winners]
 
     return JsonResponse({'winners': data})
+def get_property_details(request, property_id):
+    try:
+        property = Property.objects.get(pk=property_id)
+        response_data = {
+            'title': property.title,
+            'category': property.category,
+            'address': property.address,
+            'description': property.property_descr,
+            # 其他需要返回的字段
+        }
+
+        # 添加图片URL处理
+        if property.image_url:
+            image_url = property.image_url.url
+            # 如果你需要的是绝对路径
+            response_data['image_url'] = request.build_absolute_uri(image_url)
+
+        return JsonResponse(response_data)
+    except Property.DoesNotExist:
+        return JsonResponse({'error': 'Property not found'}, status=404)
+    except Exception as e:
+        print(f'Error fetching property details: {e}')
+        return JsonResponse({'error': 'Error processing request'}, status=500)

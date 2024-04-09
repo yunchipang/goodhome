@@ -105,14 +105,13 @@ class Property(models.Model):
     zipcode = models.IntegerField()
     image_url = models.ImageField(upload_to='image_url/')
 
+
     def __str__(self):
         return self.title
 
     class Meta:
-        # managed = False
-        db_table = "property"
-
-
+        db_table = 'property'
+        
 class Auction(models.Model):
     property = models.ForeignKey(
         Property, related_name='auctions', on_delete=models.CASCADE)

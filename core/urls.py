@@ -20,9 +20,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 # Assuming bid is the app name
-from bid.views import home, upload_property, get_properties, get_csrf, buy_history
+from bid.views import home, upload_property, get_properties, get_csrf, buy_history, get_property_details
 from authentication.views import signup_login_view
-
 
 urlpatterns = [
     path('', home, name='home'),
@@ -38,4 +37,6 @@ urlpatterns = [
     path('api/bid/', include('bid.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api/buyhistory/', buy_history, name='buy_history'),
+    path('get_property_details/<int:property_id>',
+         get_property_details, name='get_property_details'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
