@@ -20,22 +20,29 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 # Assuming bid is the app name
-from bid.views import home, upload_property, get_properties, get_csrf, buy_history
+from bid.views import home, upload_property, get_properties, get_csrf, buy_history, get_property_details, get_auction_result, get_winner_by_auction, rate_winner, shipping_create
 from authentication.views import signup_login_view
-
 
 urlpatterns = [
     path('', home, name='home'),
+    path("admin/", admin.site.urls),
     path('signup-login/', signup_login_view, name='signup_login'),
     # 注册页面
     path('signup/', signup_login_view, name='signup'),
     # 登录页面
     path('login/', signup_login_view, name='login'),
-    path("admin/", admin.site.urls),
     path('upload_property/', upload_property, name='upload_property'),
     path('get_properties/', get_properties, name='get_properties'),
     path('get-csrf/', get_csrf, name='get_csrf'),
     path('api/bid/', include('bid.urls')),
     path('api-auth/', include('rest_framework.urls')),
     path('api/buyhistory/', buy_history, name='buy_history'),
+    path('get_property_details/<int:property_id>',
+         get_property_details, name='get_property_details'),
+    path('get_auction_result/<int:property_id>',
+         get_auction_result, name='get_auction_result'),
+    path('get_winner/<int:auction_id>', get_winner_by_auction, name='get_winner'),
+    path('rate_winner/<int:winner_id>', rate_winner, name='rate_winner'),
+    path('api/shipping', shipping_create, name='shipping_create'),
+    path('get_properties/<int:seller_id>/', get_properties, name='get_properties'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

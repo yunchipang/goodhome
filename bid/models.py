@@ -1,14 +1,11 @@
+from django.conf import settings
+from core import settings
 from django.db import models
 from django.utils import timezone
-
-# Create your models here.
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
-from core import settings
-from django.conf import settings
 
-# Custom User Manager
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
         if not email:
@@ -38,6 +35,8 @@ class UserManager(BaseUserManager):
         return self.create_user(username, email, password, **extra_fields)
 
 # Custom User Model
+
+
 class User(AbstractBaseUser):
     last_login = models.DateTimeField(blank=True, null=True)
     username = models.CharField(max_length=50, unique=True)
@@ -48,7 +47,7 @@ class User(AbstractBaseUser):
     phone = models.CharField(max_length=50, blank=True, null=True)
     mailing_address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
     objects = UserManager()
 
     USERNAME_FIELD = 'username'
@@ -56,19 +55,26 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.username
+
     class Meta:
         db_table = "user"
 
 # Seller Model
+
+
 class Seller(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, primary_key=True)
 
     def __str__(self):
         return f"Seller: {self.user.username}"
+
     class Meta:
         db_table = "seller"
 
 # Bidder Model
+
+
 class Bidder(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
 
@@ -78,6 +84,7 @@ class Bidder(models.Model):
 
     class Meta:
         db_table = "bidder"
+
 
 class Property(models.Model):
     category = models.CharField(max_length=50)
@@ -93,42 +100,51 @@ class Property(models.Model):
     zipcode = models.IntegerField()
     image_url = models.ImageField(upload_to='image_url/')
 
+
     def __str__(self):
         return self.title
 
     class Meta:
-        # managed = False
-        db_table = "property"
+        db_table = 'property'
 
 
 class Auction(models.Model):
-    property = models.ForeignKey(Property, related_name='auctions', on_delete=models.CASCADE)
-    current_highest_bid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    property = models.ForeignKey(
+        Property, related_name='auctions', on_delete=models.CASCADE)
+    current_highest_bid = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
 
     def __str__(self):
         return f"Auction for {self.property.title}"
+
     class Meta:
         db_table = "auction"
 
 
 class Bid(models.Model):
-    bidder = models.ForeignKey(Bidder, on_delete=models.CASCADE, db_column='bidder_id')
-    auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='bids', db_column='auction_id')
+    bidder = models.ForeignKey(
+        Bidder, on_delete=models.CASCADE, db_column='bidder_id')
+    auction = models.ForeignKey(
+        Auction, on_delete=models.CASCADE, related_name='bids', db_column='auction_id')
     created_at = models.DateTimeField(auto_now_add=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
         return f"{self.amount} by {self.bidder}"
+
     class Meta:
         db_table = "bid"
 
+
 class Winner(models.Model):
-    auction = models.OneToOneField(Auction, on_delete=models.CASCADE, primary_key=True)
+    auction = models.OneToOneField(
+        Auction, on_delete=models.CASCADE, primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     sale_price = models.DecimalField(max_digits=10, decimal_places=2)
-    temp_sale_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    temp_sale_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True)
 
     def __str__(self):
         winner = self.user.username if self.user else "No winner yet"
@@ -136,3 +152,53 @@ class Winner(models.Model):
 
     class Meta:
         db_table = "winner"
+
+
+class WinnerRating(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='ratings_given',
+        db_column='seller_id',  # 指定数据库中的列名
+    )
+    winner = models.ForeignKey(
+        User,  # 直接关联到User模型
+        on_delete=models.CASCADE,
+        related_name='ratings_received',
+        db_column='winner_id',  # 指定数据库中的列名
+    )
+    message = models.CharField(max_length=100)
+    rating = models.IntegerField(
+        choices=[(1, 'Poor'), (2, 'Average'), (3, 'Good'),
+                 (4, 'Very Good'), (5, 'Excellent')]
+    )
+
+    def __str__(self):
+        # 由于现在winner直接关联到User，因此直接使用winner.username
+        return f"Rating from {self.seller.username} to {self.winner.username}: {self.rating} - {self.message}"
+
+    class Meta:
+        db_table = "winner_rating"
+
+
+class ShippingGift(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipments_made',
+        db_column='seller_id',  # Specifies the column name in the database
+    )
+    winner = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shipments_received',
+        db_column='winner_id',  # Specifies the column name in the database
+    )
+    ups_tracking_number = models.CharField(max_length=50)
+
+    def __str__(self):
+        # Here we use seller.username and winner.username assuming they are linked to the User model
+        return f"Shipment from {self.seller.username} to {self.winner.username} with tracking number {self.ups_tracking_number}"
+
+    class Meta:
+        db_table = "shipping"
