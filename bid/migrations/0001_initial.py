@@ -129,7 +129,6 @@ class Migration(migrations.Migration):
             name='seller',
             field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='bid.seller'),
         ),
-
         migrations.CreateModel(
             name='ShippingGift',
             fields=[
