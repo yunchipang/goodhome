@@ -64,6 +64,16 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+            name='Bidder',
+            fields=[
+                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+                'db_table': 'bidder',
+            },
+        ),
+        migrations.CreateModel(
+
             name='Seller',
             fields=[
                 ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to=settings.AUTH_USER_MODEL)),
@@ -73,33 +83,32 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='Bidder',
+            name='Auction',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('current_highest_bid', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
+                ('start_time', models.DateTimeField()),
+                ('end_time', models.DateTimeField()),
+                ('property', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='auctions', to='bid.property')),
             ],
             options={
-                'db_table': 'bidder',
+                'db_table': 'auction',
             },
         ),
         migrations.CreateModel(
-            name='Bid',
+            name='SellerRating',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
-                ('auction', models.ForeignKey(db_column='auction_id', on_delete=django.db.models.deletion.CASCADE, related_name='bids', to='bid.auction')),
-                ('bidder', models.ForeignKey(db_column='bidder_id', on_delete=django.db.models.deletion.CASCADE, to='bid.bidder')),
+                ('message', models.CharField(max_length=100)),
+                ('rating', models.IntegerField(choices=[(1, 'Poor'), (2, 'Average'), (3, 'Good'), (4, 'Very Good'), (5, 'Excellent')])),
+                ('bidder', models.ForeignKey(db_column='bidder_id', on_delete=django.db.models.deletion.CASCADE, related_name='seller_ratings_given', to=settings.AUTH_USER_MODEL)),
+                ('seller', models.ForeignKey(db_column='seller_id', on_delete=django.db.models.deletion.CASCADE, related_name='seller_ratings_received', to=settings.AUTH_USER_MODEL)),
             ],
             options={
-                'db_table': 'bid',
+                'db_table': 'seller_rating',
             },
         ),
-        migrations.AddField(
-            model_name='auction',
-            name='property',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='auctions', to='bid.property'),
-        ),
+
         migrations.CreateModel(
             name='ShippingGift',
             fields=[
@@ -125,6 +134,21 @@ class Migration(migrations.Migration):
                 'db_table': 'winner_rating',
             },
         ),
+
+        migrations.CreateModel(
+            name='Bid',
+            fields=[
+                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
+                ('auction', models.ForeignKey(db_column='auction_id', on_delete=django.db.models.deletion.CASCADE, related_name='bids', to='bid.auction')),
+                ('bidder', models.ForeignKey(db_column='bidder_id', on_delete=django.db.models.deletion.CASCADE, to='bid.bidder')),
+            ],
+            options={
+                'db_table': 'bid',
+            },
+        ),
+
         migrations.AddField(
             model_name='property',
             name='seller',
@@ -134,7 +158,8 @@ class Migration(migrations.Migration):
             name='Winner',
             fields=[
                 ('auction', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, primary_key=True, serialize=False, to='bid.auction')),
-                ('sale_price', models.DecimalField(decimal_places=2, max_digits=10)),
+                ('sale_price', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
+
                 ('temp_sale_price', models.DecimalField(blank=True, decimal_places=2, max_digits=10, null=True)),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
@@ -142,4 +167,19 @@ class Migration(migrations.Migration):
                 'db_table': 'winner',
             },
         ),
+
+        migrations.CreateModel(
+            name='Payment',
+            fields=[
+                ('id', models.AutoField(primary_key=True, serialize=False)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('amount', models.DecimalField(decimal_places=2, max_digits=10)),
+                ('payment_type', models.CharField(default='creditcard', max_length=50)),
+                ('winner', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='bid.winner')),
+            ],
+            options={
+                'db_table': 'payment',
+            },
+        ),
+
     ]

@@ -1,7 +1,10 @@
 # views.py
 import datetime
+from venv import logger
 from django.http import HttpResponseBadRequest, JsonResponse
 from .models import Property
+from .serializers import PropertySerializer
+# from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.middleware.csrf import get_token
@@ -10,11 +13,12 @@ import os
 from django.views.decorators.http import require_http_methods
 from .forms import BidForm
 from rest_framework import generics
-from .models import Property
 from .serializers import PropertySerializer
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from .models import Property, Payment, SellerRating
+from .models import Bid, Auction, User, Bidder, Winner, Payment
+from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from .models import Bid, Auction, User, Bidder, Winner
 from datetime import datetime
@@ -24,23 +28,23 @@ from decimal import Decimal
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.timezone import now
-
 from django.http import JsonResponse
-from .models import Property
-from .models import Winner
-from .models import Auction
 from .models import WinnerRating
-from .models import User
 from .models import ShippingGift
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.middleware.csrf import get_token
 from django.conf import settings
-import os
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_GET
 from rest_framework_simplejwt.tokens import AccessToken
+from django.core.exceptions import BadRequest
+from .models import Property
+from .models import Winner
+from .models import Auction
+from .models import User
+
 
 
 def get_csrf(request):
@@ -51,7 +55,7 @@ def get_csrf(request):
 def home(request):
     return HttpResponse("Welcome to the homepage!")
 
-
+  
 @csrf_exempt
 def upload_property(request):
     if request.method != 'POST':
@@ -114,6 +118,7 @@ def upload_property(request):
         return JsonResponse({'success': 'Property uploaded successfully'})
     except Exception as e:
         return JsonResponse({'error': f'Error processing request: {str(e)}'}, status=400)
+
 
 
 # class UploadPropertyView(APIView):
@@ -218,7 +223,8 @@ def upload_bid(request):
             return HttpResponseBadRequest("Missing required fields")
         # Fetch the auction and bidder instances
         auction = Auction.objects.get(pk=auction_id)
-        bidder = Bidder.objects.get(pk=1)
+        bidder = Bidder.objects.get(pk=bidder_id)
+
         print("Bidder instance:", bidder)
         print("Auction instance:", auction)
         if auction.start_time <= now() <= auction.end_time:
@@ -251,8 +257,10 @@ def upload_bid(request):
         return JsonResponse({"error": "Bidder does not exist."}, status=400)
     except (KeyError, Auction.DoesNotExist, User.DoesNotExist, json.JSONDecodeError) as e:
         print(e)  # Log the error for debugging
+        logger.error('Failed to rate seller: %s', e)
         # Return error response if something goes wrong
         return HttpResponseBadRequest("Invalid data provided")
+  
 
 
 class PropertyList(generics.ListAPIView):
@@ -263,8 +271,8 @@ class PropertyList(generics.ListAPIView):
         Optionally restricts the returned properties to a given zipcode,
         by filtering against a `zipcode` query parameter in the URL.
         """
-        queryset = Property.objects.filter(
-            is_active=True)  # Assuming you only want active properties
+        queryset = Property.objects.filter(is_active=True)  # Assuming you only want active properties
+
         zipcode = self.request.query_params.get('zipcode', None)
         if zipcode is not None:
             queryset = queryset.filter(zipcode=zipcode)
@@ -292,7 +300,7 @@ class BidCreate(APIView):
             # 如果数据验证失败，返回错误信息
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
+          
 def submit_bid(auction_id, bidder_id, amount):
     now = timezone.now()
     auction = Auction.objects.get(pk=auction_id)
@@ -318,12 +326,23 @@ def submit_bid(auction_id, bidder_id, amount):
     else:
         raise ValueError("The auction is not active.")
 
+
+
 # 返回当前登录用户作为winner的所有记录
-
-
 def buy_history(request):
-    # 假设当前登录用户的ID为1
-    user_id = 1  # 你可以替换为 request.user.id
+    # Retrieve user_id from query parameters
+    user_id = request.GET.get('user_id')
+
+    if not user_id:
+        # If user_id is not found in query parameters, return an error response
+        return JsonResponse({'error': 'User ID is missing from the request'}, status=400)
+
+    try:
+        # Convert user_id to integer
+        user_id = int(user_id)
+    except ValueError:
+        # If user_id cannot be converted to integer, return an error response
+        return JsonResponse({'error': 'Invalid user ID'}, status=400)
 
     # 获取当前用户作为winner的记录
     winners = Winner.objects.filter(user_id=user_id, sale_price__isnull=False)
@@ -332,6 +351,8 @@ def buy_history(request):
     data = [{
         'bid_amount': winner.sale_price,
         'property_address': winner.auction.property.address,
+        'seller_id': winner.auction.property.seller_id,
+
     } for winner in winners]
 
     return JsonResponse({'winners': data})
@@ -459,3 +480,72 @@ def shipping_create(request):
     else:
         # 如果数据不完整，返回错误信息
         return JsonResponse({'status': 'error', 'message': 'Missing data in request'}, status=400)
+
+
+@csrf_exempt
+def handle_payment(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        # 假设从前端发送的请求中获取支付金额和获胜者 ID
+        amount = data.get('amount')
+        winner_id = User.objects.get(id=1)
+        print("Request Data:", data)
+
+        # 创建 Payment 实例并保存到数据库中
+        try:
+            payment = Payment.objects.create(
+                winner_id=winner_id,
+                amount=amount,
+                payment_type='creditcard'  # 假设所有支付方式都是信用卡
+            )
+            print("Payment created successfully:")
+            print("Winner ID:", winner_id)
+            print("Amount:", amount)
+            # 返回成功的响应
+            return JsonResponse({'message': 'Payment successful'})
+        except Exception as e:
+            logger.error('Failed to pay: %s', e)
+            # 如果创建支付失败，则返回错误响应
+            return JsonResponse({'error': str(e)}, status=400)
+
+    # 如果请求方法不是 POST，返回错误响应
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def rate_seller(request, seller_id):
+    try:
+        # 解析JSON请求体
+        data = json.loads(request.body)
+        seller_id = data.get('seller_id')
+        rating = data.get('rating')
+        message = data.get('message')
+
+        # 确认数据存在
+        if not (seller_id and rating and message):
+            return JsonResponse({'error': 'Seller ID, rating, or message is missing.'}, status=400)
+        
+        # 获取当前登录的用户作为bidder
+        # bidder = request.user
+        bidder = 1  
+        bidder = User.objects.get(id=1)  # 直接通过ID获取User对象
+        
+        # 检查卖家是否存在，并且评分数据有效
+        if User.objects.filter(id=seller_id).exists():
+            seller = User.objects.get(id=seller_id)
+            SellerRating.objects.create(
+                seller=seller,
+                bidder = bidder,
+                rating=rating,
+                message=message
+            )
+            return JsonResponse({'message': 'Rating saved successfully.'}, status=200)
+        else:
+            return JsonResponse({'error': 'Seller does not exist.'}, status=404)
+    except Exception as e:
+        # 记录异常信息到日志
+        logger.error('Failed to rate seller: %s', e)
+        # 返回错误响应
+        return JsonResponse({'error': 'Server error'}, status=500)
+    
+

@@ -1,17 +1,21 @@
 import json
 
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
 from .forms import SignUpForm, LoginForm
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.views import PasswordResetView
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.models import User # type: ignore
+import json
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from bid.models import Bidder, User
 # from bid.models import User
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -108,6 +112,8 @@ def signup_login_view(request):
                 mailing_address=mailing_address
             )
 
+            Bidder.objects.create(id=user.id, user=user)
+
             return JsonResponse({'status': 'success', 'message': 'Registration successful'})
 
         elif request.path.endswith('/login/'):
@@ -199,3 +205,4 @@ def signup_login_view(request):
 
 def home(request):
     return HttpResponse("Welcome to the homepage!")
+

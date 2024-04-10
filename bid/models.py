@@ -2,11 +2,11 @@ from django.conf import settings
 from core import settings
 from django.db import models
 from django.utils import timezone
-
 # Create your models here.
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-
+from core import settings
+from django.conf import settings
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -20,7 +20,6 @@ class UserManager(BaseUserManager):
             username=username,
             **extra_fields
         )
-
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -36,9 +35,8 @@ class UserManager(BaseUserManager):
 
         return self.create_user(username, email, password, **extra_fields)
 
+
 # Custom User Model
-
-
 class User(AbstractBaseUser):
     last_login = models.DateTimeField(blank=True, null=True)
     username = models.CharField(max_length=50, unique=True)
@@ -49,7 +47,6 @@ class User(AbstractBaseUser):
     phone = models.CharField(max_length=50, blank=True, null=True)
     mailing_address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
     objects = UserManager()
 
     USERNAME_FIELD = 'username'
@@ -78,7 +75,10 @@ class Seller(models.Model):
 
 
 class Bidder(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         # return f"Bidder: {self.user.username}"
@@ -95,13 +95,12 @@ class Property(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     property_descr = models.TextField()
     title = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)  #+5
     address = models.CharField(max_length=255)
     squarefeet = models.IntegerField(null=True, blank=True)
     room_type = models.CharField(max_length=50, null=True, blank=True)
     zipcode = models.IntegerField()
     image_url = models.ImageField(upload_to='image_url/')
-
 
     def __str__(self):
         return self.title
@@ -115,8 +114,8 @@ class Auction(models.Model):
         Property, related_name='auctions', on_delete=models.CASCADE)
     current_highest_bid = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True)
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
+    start_time = models.DateTimeField() #default
+    end_time = models.DateTimeField()   #+5
 
     def __str__(self):
         return f"Auction for {self.property.title}"
@@ -144,7 +143,7 @@ class Winner(models.Model):
     auction = models.OneToOneField(
         Auction, on_delete=models.CASCADE, primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    sale_price = models.DecimalField(max_digits=10, decimal_places=2)
+    sale_price = models.DecimalField(max_digits=10, decimal_places=2,  null=True, blank=True)
     temp_sale_price = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True)
 
@@ -154,6 +153,47 @@ class Winner(models.Model):
 
     class Meta:
         db_table = "winner"
+  
+       
+class Payment(models.Model):
+    id = models.AutoField(primary_key=True)
+    winner = models.ForeignKey(Winner, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_type = models.CharField(max_length=50, default='creditcard')
+
+    def __str__(self):
+        return f"Payment for winner {self.winner.id} - Amount: {self.amount} - Type: {self.payment_type}"
+    
+    class Meta:
+        db_table = "payment"
+            
+        
+class SellerRating(models.Model):
+    seller = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='seller_ratings_received',
+        db_column='seller_id',  # 指定数据库中的列名
+    )
+    bidder = models.ForeignKey(
+        User,  # 直接关联到User模型
+        on_delete=models.CASCADE,
+        related_name='seller_ratings_given',
+        db_column='bidder_id',  # 指定数据库中的列名
+    )
+    message = models.CharField(max_length=100)
+    rating = models.IntegerField(
+        choices=[(1, 'Poor'), (2, 'Average'), (3, 'Good'),
+                 (4, 'Very Good'), (5, 'Excellent')]
+    )
+
+    def __str__(self):
+        # 由于现在bidder直接关联到User，因此直接使用bidder.username
+        return f"Rating from {self.bidder.username} to {self.seller.username}: {self.rating} - {self.message}"
+
+    class Meta:
+        db_table = "seller_rating"
 
 
 class WinnerRating(models.Model):

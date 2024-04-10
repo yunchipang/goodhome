@@ -1,7 +1,9 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from .models import Auction, Winner, Property, Bid
+from .models import Auction, Winner, Property, Bid, Bidder, User
 from django.utils.timezone import now
+from django.contrib.auth import get_user_model
+
 
 @receiver(post_save, sender=Auction)
 def update_winner_on_auction_end(sender, instance, **kwargs):
@@ -30,4 +32,10 @@ def create_winner_on_property_deactivation(sender, instance, **kwargs):
         except Winner.DoesNotExist:
             print("Winner does not exist for this property.")
 
-            
+
+@receiver(post_save, sender=User)
+def create_related_profiles(sender, instance, created, **kwargs):
+    if created:
+        Bidder.objects.create(user=instance)
+        # Seller.objects.create(user=instance)
+
