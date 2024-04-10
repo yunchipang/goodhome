@@ -47,7 +47,7 @@ import os
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_GET
 from rest_framework_simplejwt.tokens import AccessToken
-
+from django.utils.dateparse import parse_datetime
 
 def get_csrf(request):
     csrf_token = get_token(request)
@@ -206,6 +206,42 @@ def get_properties(request, seller_id):
     except Exception as e:
         return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
 
+@csrf_exempt
+def get_auctions_time(request, property_id):
+    try:
+        data = json.loads(request.body)
+        start_time = timezone.make_aware(parse_datetime(data.get('startTime')))
+        end_time = timezone.make_aware(parse_datetime(data.get('endTime')))
+
+        # 假设您的Auction模型有这些字段：property_id, start_time, end_time
+        auction = Auction.objects.create(
+            id=property_id,
+            property_id=property_id,
+            current_highest_bid=None,  # 可以初始化为None或适当的值
+            start_time=start_time,
+            end_time=end_time
+        )
+        auction.save()
+        return JsonResponse({'message': 'Auction started successfully', 'id': auction.id})
+    except Exception as e:
+        return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
+    
+    
+@csrf_exempt    
+@require_http_methods(["POST"])
+def update_property_status(request, property_id):
+    if request.method == 'POST':
+        try:
+            property = Property.objects.get(id=property_id)
+            property.is_active = False
+            property.save()
+            return JsonResponse({'message': 'Property status updated successfully.'}, status=200)
+        except Property.DoesNotExist:
+            return JsonResponse({'error': 'Property not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
 
 @csrf_exempt
 @require_http_methods(["POST"])  # Only allow POST requests
