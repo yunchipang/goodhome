@@ -83,6 +83,8 @@ def upload_property(request):
 
         seller_id = user_id
 
+        # seller = User.objects.get(id=seller_id)  # 通过 ID 获取 User 实例
+
         required_fields = ['category', 'start_bid_amount', 'seller_id', 'property_descr', 'title',
                            'is_active', 'address', 'squarefeet', 'room_type', 'created_at', 'zipcode']
         for field in required_fields:

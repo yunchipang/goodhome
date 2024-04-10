@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 # from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth import get_user_model
 
 
 class UserManager(BaseUserManager):
@@ -63,8 +64,10 @@ class User(AbstractBaseUser):
 
 
 class Seller(models.Model):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, primary_key=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"Seller: {self.user.username}"
@@ -76,7 +79,10 @@ class Seller(models.Model):
 
 
 class Bidder(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         # return f"Bidder: {self.user.username}"
