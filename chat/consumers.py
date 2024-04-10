@@ -39,7 +39,12 @@ class ChatConsumer(WebsocketConsumer):
             return  # Handle the error appropriately
         # Send message to room group
         async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name, {"type": "chat_message", "message": message}
+            self.room_group_name,
+            {
+                "type": "chat_message",
+                "message": message,
+                "sender_id": sender_id
+            }
         )
         # Write message to database
         ChatMessage.objects.create(
@@ -50,7 +55,12 @@ class ChatConsumer(WebsocketConsumer):
 
     # Receive message from room group
     def chat_message(self, event):
+        # Extract message, sender_id, and receiver_id from the event
         message = event["message"]
+        sender_id = event.get("sender_id")
 
-        # Send message to WebSocket
-        self.send(text_data=json.dumps({"message": message}))
+        # Send message along with sender_id and receiver_id to WebSocket
+        self.send(text_data=json.dumps({
+            "message": message,
+            "sender_id": sender_id
+        }))
