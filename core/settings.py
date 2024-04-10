@@ -10,6 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+from datetime import timedelta
+import os
+from dotenv import load_dotenv
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,23 +29,64 @@ SECRET_KEY = "django-insecure-6$)rkgu^xlh$&l-w=t2%z!_kz&)s@raqro212bibn=#av5%pcs
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
+AUTH_USER_MODEL = 'bid.User'
 
-
+STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
 # Application definition
 
+# 不确定
+PAYMENT_USES_SSL = False
+PAYMENT_HOST = 'localhost:8000'
+
+PAYMENT_PROCESSORS = {
+    'default': {
+        'ENGINE': 'payments.dummy.DummyProvider',
+    },
+    'stripe': {
+        'ENGINE': 'payments.stripe.StripeProvider',
+        'public_key': 'your-stripe-public-key',
+        'private_key': 'your-stripe-private-key',
+    },
+    # Add other payment processors as needed
+}
+
+
 INSTALLED_APPS = [
+    'daphne',
+    "chat",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "bid",
+    "authentication",
+    # "bid",
     "corsheaders",
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'bid.apps.BidConfig',
+    # 'background_task',
 ]
+
+# Daphne
+ASGI_APPLICATION = "core.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -52,9 +96,36 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
+CORS_ALLOW_CREDENTIALS = True
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=360),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Add your React application's URL here
 ]
+
+REST_FRAMEWORK = {
+    # Use Django's standard `django.contrib.auth` permissions,
+    # or allow read-only access for unauthenticated users.
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
+    ]
+}
 
 ROOT_URLCONF = "core.urls"
 
@@ -80,11 +151,10 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 import pymysql  # noqa: 402
-import os 
-from dotenv import load_dotenv
 
 load_dotenv()
-required_env_vars = ["DB_HOST", "DB_HOST_GAE", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+required_env_vars = ["DB_HOST", "DB_HOST_GAE",
+                     "DB_USER", "DB_PASSWORD", "DB_NAME"]
 for var_name in required_env_vars:
     if not os.getenv(var_name):
         raise ValueError(f"Environment variable '{var_name}' not set")
@@ -123,7 +193,6 @@ else:
     }
 
 
-
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -154,13 +223,17 @@ USE_I18N = True
 
 USE_TZ = True
 
-CORS_ALLOW_ALL_ORIGINS = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+STATICFILES_DIRS = []
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

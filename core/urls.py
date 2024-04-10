@@ -16,8 +16,40 @@ Including another URLconf
 """
 
 from django.contrib import admin
-from django.urls import path
+from django.conf import settings
+from django.conf.urls.static import static
+from django.urls import path, include
+# Assuming bid is the app name
+from bid.views import home, upload_property, get_properties, get_csrf
+from bid.views import buy_history, handle_payment, rate_seller
+from bid.views import get_property_details, get_auction_result, get_winner_by_auction, rate_winner, shipping_create
+from authentication.views import signup_login_view, logout_view, profile_view
 
 urlpatterns = [
+    path('', home, name='home'),
     path("admin/", admin.site.urls),
-]
+    path('signup-login/', signup_login_view, name='signup_login'),
+    # 注册页面
+    path('signup/', signup_login_view, name='signup'),
+    # 登录页面
+    path('login/', signup_login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
+    path('profile/', profile_view, name='profile'),
+    path('upload_property/', upload_property, name='upload_property'),
+    path('get_properties/', get_properties, name='get_properties'),
+    path('get-csrf/', get_csrf, name='get_csrf'),
+    path('api/bid/', include('bid.urls')),
+    path('api-auth/', include('rest_framework.urls')),
+    path('api/buyhistory/', buy_history, name='buy_history'),
+    path('api/handle_payment/', handle_payment, name='handle_payment'),
+    path('rate_seller/<int:seller_id>', rate_seller, name='rate_seller'),
+    path('get_property_details/<int:property_id>',
+         get_property_details, name='get_property_details'),
+    path('get_auction_result/<int:property_id>',
+         get_auction_result, name='get_auction_result'),
+    path('get_winner/<int:auction_id>', get_winner_by_auction, name='get_winner'),
+    path('rate_winner/<int:winner_id>', rate_winner, name='rate_winner'),
+    path('api/shipping', shipping_create, name='shipping_create'),
+    path('get_properties/<int:seller_id>/', get_properties, name='get_properties'),
+    path('api/chat/', include('chat.urls')),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
