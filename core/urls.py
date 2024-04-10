@@ -24,6 +24,7 @@ from bid.views import home, upload_property, get_properties, get_csrf
 from bid.views import buy_history, handle_payment, rate_seller
 from bid.views import get_property_details, get_auction_result, get_winner_by_auction, rate_winner, shipping_create
 from authentication.views import signup_login_view, logout_view, profile_view
+from query.views import execute_query
 
 urlpatterns = [
     path('', home, name='home'),
@@ -52,4 +53,5 @@ urlpatterns = [
     path('api/shipping', shipping_create, name='shipping_create'),
     path('get_properties/<int:seller_id>/', get_properties, name='get_properties'),
     path('api/chat/', include('chat.urls')),
+    path('api/query', execute_query, name='execute_query'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
