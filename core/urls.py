@@ -47,4 +47,5 @@ urlpatterns = [
     path('rate_winner/<int:winner_id>', rate_winner, name='rate_winner'),
     path('api/shipping', shipping_create, name='shipping_create'),
     path('get_properties/<int:seller_id>/', get_properties, name='get_properties'),
+    path('api/chat/', include('chat.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

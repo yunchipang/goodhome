@@ -2,16 +2,10 @@
 import datetime
 from django.http import HttpResponseBadRequest, JsonResponse
 from .models import Property
-from .serializers import PropertySerializer
-from django.shortcuts import render
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-import json
 from django.middleware.csrf import get_token
-from django.core.files.storage import FileSystemStorage
-from django.core.files.storage import default_storage
 from django.conf import settings
-from urllib.parse import urljoin
 import os
 from django.views.decorators.http import require_http_methods
 from .forms import BidForm
