@@ -4,6 +4,7 @@ from .models import Auction, Winner, Property, Bid, Bidder, User
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
 
+
 @receiver(post_save, sender=Auction)
 def update_winner_on_auction_end(sender, instance, **kwargs):
     if instance.end_time <= now():
@@ -37,3 +38,4 @@ def create_related_profiles(sender, instance, created, **kwargs):
     if created:
         Bidder.objects.create(user=instance)
         # Seller.objects.create(user=instance)
+

@@ -40,6 +40,10 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_GET
 from rest_framework_simplejwt.tokens import AccessToken
 from django.core.exceptions import BadRequest
+from .models import Property
+from .models import Winner
+from .models import Auction
+from .models import User
 
 
 
@@ -51,6 +55,7 @@ def get_csrf(request):
 def home(request):
     return HttpResponse("Welcome to the homepage!")
 
+  
 @csrf_exempt
 def upload_property(request):
     if request.method != 'POST':
@@ -219,6 +224,7 @@ def upload_bid(request):
         # Fetch the auction and bidder instances
         auction = Auction.objects.get(pk=auction_id)
         bidder = Bidder.objects.get(pk=bidder_id)
+
         print("Bidder instance:", bidder)
         print("Auction instance:", auction)
         if auction.start_time <= now() <= auction.end_time:
@@ -256,6 +262,7 @@ def upload_bid(request):
         return HttpResponseBadRequest("Invalid data provided")
   
 
+
 class PropertyList(generics.ListAPIView):
     serializer_class = PropertySerializer
 
@@ -265,11 +272,12 @@ class PropertyList(generics.ListAPIView):
         by filtering against a `zipcode` query parameter in the URL.
         """
         queryset = Property.objects.filter(is_active=True)  # Assuming you only want active properties
+
         zipcode = self.request.query_params.get('zipcode', None)
         if zipcode is not None:
             queryset = queryset.filter(zipcode=zipcode)
         return queryset
-    
+
     def get_serializer_context(self):
         """
         Pass request object to serializer to construct full image URL.
@@ -277,10 +285,9 @@ class PropertyList(generics.ListAPIView):
         return {'request': self.request}
 
 
-
 class BidCreate(APIView):
     permission_classes = [AllowAny]  # 允许任何人进行 POST 请求
-    
+
     def post(self, request, *args, **kwargs):
         print(request.data)
         serializer = BidSerializer(data=request.data)
@@ -292,8 +299,8 @@ class BidCreate(APIView):
         else:
             # 如果数据验证失败，返回错误信息
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-     
-   
+
+          
 def submit_bid(auction_id, bidder_id, amount):
     now = timezone.now()
     auction = Auction.objects.get(pk=auction_id)
@@ -336,6 +343,7 @@ def buy_history(request):
     except ValueError:
         # If user_id cannot be converted to integer, return an error response
         return JsonResponse({'error': 'Invalid user ID'}, status=400)
+
     # 获取当前用户作为winner的记录
     winners = Winner.objects.filter(user_id=user_id, sale_price__isnull=False)
 
@@ -344,6 +352,7 @@ def buy_history(request):
         'bid_amount': winner.sale_price,
         'property_address': winner.auction.property.address,
         'seller_id': winner.auction.property.seller_id,
+
     } for winner in winners]
 
     return JsonResponse({'winners': data})
@@ -473,7 +482,6 @@ def shipping_create(request):
         return JsonResponse({'status': 'error', 'message': 'Missing data in request'}, status=400)
 
 
-
 @csrf_exempt
 def handle_payment(request):
     if request.method == 'POST':
@@ -540,3 +548,4 @@ def rate_seller(request, seller_id):
         # 返回错误响应
         return JsonResponse({'error': 'Server error'}, status=500)
     
+

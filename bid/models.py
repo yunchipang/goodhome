@@ -8,8 +8,6 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from core import settings
 from django.conf import settings
 
-
-# Custom User Manager
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
         if not email:
@@ -22,7 +20,6 @@ class UserManager(BaseUserManager):
             username=username,
             **extra_fields
         )
-        
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -50,7 +47,6 @@ class User(AbstractBaseUser):
     phone = models.CharField(max_length=50, blank=True, null=True)
     mailing_address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    
     objects = UserManager()
 
     USERNAME_FIELD = 'username'
@@ -123,7 +119,7 @@ class Auction(models.Model):
 
     def __str__(self):
         return f"Auction for {self.property.title}"
-    
+
     class Meta:
         db_table = "auction"
 
@@ -138,6 +134,7 @@ class Bid(models.Model):
 
     def __str__(self):
         return f"{self.amount} by {self.bidder}"
+
     class Meta:
         db_table = "bid"
 
@@ -156,8 +153,8 @@ class Winner(models.Model):
 
     class Meta:
         db_table = "winner"
-        
-        
+  
+       
 class Payment(models.Model):
     id = models.AutoField(primary_key=True)
     winner = models.ForeignKey(Winner, on_delete=models.CASCADE)
@@ -197,6 +194,7 @@ class SellerRating(models.Model):
 
     class Meta:
         db_table = "seller_rating"
+
 
 class WinnerRating(models.Model):
     seller = models.ForeignKey(

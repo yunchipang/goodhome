@@ -13,7 +13,7 @@ class PropertySerializer(serializers.ModelSerializer):
             'id', 'category', 'start_bid_amount', 'seller_id', 'created_at',
             'property_descr', 'title', 'is_active', 'address', 'squarefeet', 'room_type', 'zipcode', 'image_url'
         )
-    
+
     def get_image_url(self, obj):
         if obj.image_url:
             # Generate the full URL for the image
