@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.urls import path, include
 # Assuming bid is the app name
 from bid.views import home, upload_property, get_properties, get_csrf, buy_history, get_property_details, get_auction_result, get_winner_by_auction, rate_winner, shipping_create
-from authentication.views import signup_login_view
+from authentication.views import signup_login_view, logout_view, profile_view
 
 urlpatterns = [
     path('', home, name='home'),
@@ -31,6 +31,8 @@ urlpatterns = [
     path('signup/', signup_login_view, name='signup'),
     # 登录页面
     path('login/', signup_login_view, name='login'),
+    path('logout/', logout_view, name='logout'),
+    path('profile/', profile_view, name='profile'),
     path('upload_property/', upload_property, name='upload_property'),
     path('get_properties/', get_properties, name='get_properties'),
     path('get-csrf/', get_csrf, name='get_csrf'),
