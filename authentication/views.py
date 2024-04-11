@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
@@ -18,7 +19,6 @@ from django.views.decorators.csrf import csrf_exempt
 from bid.models import Bidder, User
 # from bid.models import User
 from django.contrib.auth import get_user_model
-User = get_user_model()
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.middleware.csrf import get_token
@@ -27,6 +27,9 @@ from django.shortcuts import render
 from rest_framework import generics, permissions
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework import status
+from bid.models import Seller, Bidder
+
+from django.forms.models import model_to_dict
 # from serializers import UserSerializer
 from django.contrib.auth import logout  # Import logout function
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -112,6 +115,9 @@ def signup_login_view(request):
                 mailing_address=mailing_address
             )
 
+            user_to_dict = model_to_dict(user)
+            print(f"All field names for user are {user_to_dict}")
+            Seller.objects.create(id=user.id, user=user)
             Bidder.objects.create(id=user.id, user=user)
 
             return JsonResponse({'status': 'success', 'message': 'Registration successful'})
@@ -121,8 +127,9 @@ def signup_login_view(request):
             username = data.get('username')
             password = data.get('password')
             user = authenticate(request, username=username, password=password)
+            print(user)
             if user is not None:
-                login(request, user)    
+                login(request, user)   
                 try:
                     access_token = AccessToken.for_user(user)
                     return JsonResponse({

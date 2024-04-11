@@ -39,11 +39,9 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.http import require_GET
 from rest_framework_simplejwt.tokens import AccessToken
+from django.utils.dateparse import parse_datetime
+from venv import logger
 from django.core.exceptions import BadRequest
-from .models import Property
-from .models import Winner
-from .models import Auction
-from .models import User
 
 
 
@@ -80,6 +78,8 @@ def upload_property(request):
         print(request.FILES)
 
         seller_id = user_id
+
+        # seller = User.objects.get(id=seller_id)  # 通过 ID 获取 User 实例
 
         required_fields = ['category', 'start_bid_amount', 'seller_id', 'property_descr', 'title',
                            'is_active', 'address', 'squarefeet', 'room_type', 'created_at', 'zipcode']
@@ -203,6 +203,42 @@ def get_properties(request, seller_id):
     except Exception as e:
         return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
 
+@csrf_exempt
+def get_auctions_time(request, property_id):
+    try:
+        data = json.loads(request.body)
+        start_time = timezone.make_aware(parse_datetime(data.get('startTime')))
+        end_time = timezone.make_aware(parse_datetime(data.get('endTime')))
+
+        # 假设您的Auction模型有这些字段：property_id, start_time, end_time
+        auction = Auction.objects.create(
+            id=property_id,
+            property_id=property_id,
+            current_highest_bid=None,  # 可以初始化为None或适当的值
+            start_time=start_time,
+            end_time=end_time
+        )
+        auction.save()
+        return JsonResponse({'message': 'Auction started successfully', 'id': auction.id})
+    except Exception as e:
+        return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
+    
+
+@csrf_exempt    
+@require_http_methods(["POST"])
+def update_property_status(request, property_id):
+    if request.method == 'POST':
+        try:
+            property = Property.objects.get(id=property_id)
+            property.is_active = False
+            property.save()
+            return JsonResponse({'message': 'Property status updated successfully.'}, status=200)
+        except Property.DoesNotExist:
+            return JsonResponse({'error': 'Property not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Invalid request method.'}, status=405)
 
 @csrf_exempt
 @require_http_methods(["POST"])  # Only allow POST requests
@@ -426,33 +462,39 @@ def get_winner_by_auction(auction_id):
 
 @csrf_exempt
 def rate_winner(request, winner_id):
-    try:
-        # 解析JSON请求体
-        data = json.loads(request.body)
-        rating = data.get('rating')
-        message = data.get('message')
+    if request.method == 'POST':
+        try:
+            # 解析JSON请求体
+            # user = request.user  # 获取当前登录的用户对象
+            # seller_id = user.id  # 从当前登录的用户获取seller_id
 
-        # 确认数据存在
-        if not (rating and message):
-            return JsonResponse({'error': 'Rating or message is missing.'}, status=400)
+            data = json.loads(request.body)
+            print("Received data:", data)  # 打印数据以确认接收的内容
+            rating = int(data['rating'])
+            message = data.get('message')
+            seller_id = request.GET.get('sellerId')
 
-        # 假设您已经通过身份验证获取了卖家的用户ID
-        seller_id = 1
+            winner = User.objects.get(pk=winner_id)
+            print("--------line465------this is winner id:", winner.id)
+            seller = User.objects.get(pk=seller_id)
+            print("--------line467------this is seller id:", seller.id)
 
-        # 检查卖家和获胜者是否存在，并且评分数据有效
-        if User.objects.filter(id=winner_id).exists():
-            winner = User.objects.get(id=winner_id)
-            WinnerRating.objects.create(
-                seller_id=seller_id,
+            winner_rating = WinnerRating(
                 winner=winner,
+                seller=seller,
                 rating=rating,
                 message=message
             )
-            return JsonResponse({'message': 'Rating saved successfully.'}, status=200)
-        else:
-            return JsonResponse({'error': 'Seller or winner does not exist.'}, status=404)
-    except Exception as e:
-        return JsonResponse({'error': 'Server error: ' + str(e)}, status=500)
+            winner_rating.save()
+            print("Saved winner_rating:", winner_rating)  # 确认对象已保存
+            # 确认数据和 sellerId 存在
+            return JsonResponse({"success": True, "message": "Rating saved successfully."})
+
+        except Exception as e:
+            logger.error("Failed to rate seller: %s", e)
+            return JsonResponse({"success": False, "error": str(e)})
+    else:
+        return JsonResponse({"success": False, "error": "Invalid request method."})
 
 
 @require_http_methods(["POST"])
