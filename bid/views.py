@@ -402,7 +402,9 @@ def get_property_details(request, property_id):
             'category': property.category,
             'address': property.address,
             'description': property.property_descr,
-            # 其他需要返回的字段
+            'squarefeet': property.squarefeet,
+            'room_type': property.room_type,
+            'zipcode': property.zipcode,
         }
 
         # 添加图片URL处理
