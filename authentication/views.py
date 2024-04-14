@@ -190,7 +190,8 @@ def signup_login_view(request):
             user = authenticate(request, username=username, password=password)
             print(user)
             if user is not None:
-                login(request, user)   
+                login(request, user)
+                print("Is Admin:", user.is_admin)   
                 try:
                     access_token = AccessToken.for_user(user)
                     return JsonResponse({
@@ -198,7 +199,8 @@ def signup_login_view(request):
                         'message': 'Login successful',
                         'user_id': user.id,
                         'token': str(access_token),
-                        'username': user.username
+                        'username': user.username,
+                        'is_admin': user.is_admin
                     }, status=status.HTTP_201_CREATED)
                 except Exception as e:
                     # Log the error for debugging purposes

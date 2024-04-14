@@ -55,4 +55,5 @@ urlpatterns = [
     path('update_property_status/<int:property_id>/', update_property_status, name='update_property_status'),
     path('api/chat/', include('chat.urls')),
     path('api/query', execute_query, name='execute_query'),
+    path('admin_feature/', include('admin_feature.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
