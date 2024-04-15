@@ -47,6 +47,7 @@ class User(AbstractBaseUser):
     phone = models.CharField(max_length=50, blank=True, null=True)
     mailing_address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_admin = models.BooleanField(default=False)
     objects = UserManager()
 
     USERNAME_FIELD = 'username'
