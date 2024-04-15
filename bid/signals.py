@@ -32,10 +32,3 @@ def create_winner_on_property_deactivation(sender, instance, **kwargs):
         except Winner.DoesNotExist:
             print("Winner does not exist for this property.")
 
-
-@receiver(post_save, sender=User)
-def create_related_profiles(sender, instance, created, **kwargs):
-    if created:
-        Bidder.objects.create(user=instance)
-        # Seller.objects.create(user=instance)
-
