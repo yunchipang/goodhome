@@ -5,8 +5,8 @@ from django.utils import timezone
 # Create your models here.
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
-from core import settings
-from django.conf import settings
+from django.contrib.auth import get_user_model
+
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -62,8 +62,10 @@ class User(AbstractBaseUser):
 
 
 class Seller(models.Model):
-    user = models.OneToOneField(
-        User, on_delete=models.CASCADE, primary_key=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE
+    )
 
     def __str__(self):
         return f"Seller: {self.user.username}"
