@@ -2,14 +2,12 @@ import json
 
 from django.conf import settings
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
 from .forms import SignUpForm, LoginForm
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.views import PasswordResetView
 from django.contrib import messages
 from django.contrib.auth.forms import PasswordResetForm
-from django.contrib.auth.models import User # type: ignore
 import json
 from django.http import JsonResponse
 from django.contrib.auth import authenticate, login
@@ -173,7 +171,8 @@ def signup_login_view(request):
                 first_name=first_name,
                 last_name=last_name,
                 phone=phone,
-                mailing_address=mailing_address
+                mailing_address=mailing_address,
+                is_admin=False
             )
 
             user_to_dict = model_to_dict(user)
